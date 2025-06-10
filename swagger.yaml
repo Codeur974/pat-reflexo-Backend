@@ -1,158 +1,535 @@
-swagger: '2.0'
+openapi: 3.0.0
 info:
-  title: Bank Argent API documentation
-  description: Contains all available API endpoints in this codebase
-  version: '1.0.0'
-  termsOfService: 'http://swagger.io/terms/'
-host: localhost:3001
-basePath: /api/v1
-schemes:
-  - http
+  title: API d'Authentification et Gestion des Utilisateurs
+  version: 1.0.0
+  description: API pour l'authentification et la gestion des utilisateurs.
+
+servers:
+  - url: http://localhost:4000/api/v1/
+    description: Serveur de développement local
+
+tags:
+  - name: Utilisateurs
+    description: Gestion des utilisateurs et de l'authentification
+  - name: Travaux (Admin seulement)
+    description: Gestion des travaux (works), réservé à l'administrateur
+
 paths:
   /user/login:
     post:
       tags:
-        - User Module
-      summary: Login
-      description: API for Login
-      parameters:
-        - in: body
-          name: body
-          description: Login Payload
-          required: true
-          schema:
-            $ref: '#/definitions/Login'
-      produces:
-        - application/json
+        - Utilisateurs
+      summary: Authentification des utilisateurs
+      description: Les utilisateurs normaux se connectent avec leur username, tandis que les administrateurs se connectent avec leur email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: Nom d'utilisateur (pour les utilisateurs normaux)
+                  example: johndoe
+                email:
+                  type: string
+                  description: Adresse email (pour les administrateurs)
+                  example: admin@example.com
+                password:
+                  type: string
+                  description: Mot de passe
+                  example: "securepassword123"
       responses:
-        '200':
-          description: Login Successfully
-          schema:
-            $ref: '#/definitions/LoginResponse'
-        '400':
-          description: Invalid Fields
-        '500':
-          description: Internal Server Error
-  /user/signup:
+        "200":
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Login successful"
+                  token:
+                    type: string
+                    description: Token JWT
+                  role:
+                    type: string
+                    description: Rôle de l'utilisateur
+                    example: "admin"
+        "400":
+          description: Requête invalide
+        "401":
+          description: Mot de passe invalide
+        "404":
+          description: Utilisateur non trouvé
+
+  /admin/users/create:
     post:
       tags:
-        - User Module
-      summary: Signup
-      description: API for Signup
-      parameters:
-        - in: body
-          name: body
-          description: Signup Payload
-          required: true
-          schema:
-            $ref: '#/definitions/User'
-      produces:
-        - application/json
+        - Utilisateurs
+      summary: Créer un nouvel utilisateur (administrateur uniquement)
+      description: Cet endpoint permet à un administrateur de créer un nouvel utilisateur.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreate"
       responses:
-        '200':
-          description: Signup Successfully
-          schema:
-            $ref: '#/definitions/ApiResponse'
-        '400':
-          description: Invalid Fields
-        '500':
-          description: Internal Server Error
-  /user/profile:
+        "201":
+          description: Utilisateur créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Données invalides
+        "401":
+          description: Non autorisé
+        "403":
+          description: Accès refusé
+
+  /admin/users:
     get:
-      security:
-        - Bearer: []
       tags:
-        - User Module
-      summary: User Profile API
-      description: API for fetching a user profile
-      #produces:
-       # - application/json
+        - Utilisateurs
+      summary: Récupérer les noms et prénoms de tous les utilisateurs (administrateur uniquement)
+      security:
+        - bearerAuth: []
       responses:
-        '200':
-          description: User profile retrieved successully
-          schema:
-            $ref: '#/definitions/ApiResponse'
-        '400':
-          description: Invalid Fields
-        '500':
-          description: Internal Server Error
-    put:
-      security:
-        - Bearer: []
+        "200":
+          description: Liste des noms et prénoms de tous les utilisateurs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    firstName:
+                      type: string
+                      description: Prénom de l'utilisateur
+                      example: "John"
+                    lastName:
+                      type: string
+                      description: Nom de l'utilisateur
+                      example: "Doe"
+        "401":
+          description: Non autorisé
+        "403":
+          description: Accès refusé
+
+  /admin/users/{id}:
+    get:
       tags:
-        - User Module
-      summary: User Profile API
-      description: API for updating a user profile
+        - Utilisateurs
+      summary: Récupérer les informations d'un utilisateur (administrateur uniquement)
+      security:
+        - bearerAuth: []
       parameters:
-        - in: body
-          name: body
-          description: Update user profile attributes
+        - in: path
+          name: id
           required: true
           schema:
-            $ref: '#/definitions/UserProfile'
-      produces:
-        - application/json
+            type: string
+          description: ID de l'utilisateur à récupérer
       responses:
-        '200':
-          description: User profile retrieved successully
+        "200":
+          description: Informations de l'utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Non autorisé
+        "403":
+          description: Accès refusé
+        "404":
+          description: Utilisateur non trouvé
+
+    delete:
+      tags:
+        - Utilisateurs
+      summary: Supprimer un utilisateur (administrateur uniquement)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
           schema:
-            $ref: '#/definitions/ApiResponse'
-        '400':
-          description: Invalid Fields
-        '500':
-          description: Internal Server Error
-securityDefinitions:
-  Bearer:
-    type: apiKey
-    name: Authorization
-    in: header
-definitions:
-  User:
-    properties:
-      email:
-        type: string
-        description: user email
-      password:
-        type: string
-        description: user password
-      firstName:
-        type: string
-        description: user first name
-      lastName:
-        type: string
-        description: user last name
-      userName:
-        type: string
-        description: user public name
-  Login:
-    properties:
-      email:
-        type: string
-        description: user email
-      password:
-        type: string
-        description: user password
-  ApiResponse:
-    type: object
-    properties:
-      status:
-        type: integer
-      message:
-        type: string
-      body:
-        type: object
-        properties:
-          id:
             type: string
-          email:
+          description: ID de l'utilisateur à supprimer
+      responses:
+        "200":
+          description: Utilisateur supprimé avec succès
+        "401":
+          description: Non autorisé
+        "403":
+          description: Accès refusé
+        "404":
+          description: Utilisateur non trouvé
+
+  /update-profile:
+    put:
+      tags:
+        - Utilisateurs
+      summary: Mettre à jour les informations de l'utilisateur connecté
+      description: Cet endpoint permet à un utilisateur connecté de mettre à jour son email, son mot de passe, son adresse et son numéro de téléphone.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Informations mises à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Données invalides
+        "401":
+          description: Non autorisé
+        "404":
+          description: Utilisateur non trouvé
+
+  /first-login:
+    put:
+      tags:
+        - Utilisateurs
+      summary: Mise à jour des informations lors de la première connexion
+      description: Permet à un utilisateur de mettre à jour son mot de passe et son identifiant unique lors de sa première connexion.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  description: Nouveau mot de passe de l'utilisateur (obligatoire)
+                  example: "newpassword123"
+                userName:
+                  type: string
+                  description: Nouvel identifiant unique de l'utilisateur (optionnel)
+                  example: "Doe123"
+      responses:
+        "200":
+          description: Informations mises à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Mot de passe manquant ou première connexion déjà effectuée
+        "401":
+          description: Non autorisé
+        "404":
+          description: Utilisateur non trouvé
+
+  /works:
+    post:
+      tags:
+        - Travaux (Admin seulement)
+      summary: Ajouter un nouveau travail
+      description: Ajoute un travail avec un titre, une image de couverture et des fichiers (images/vidéos).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Titre du travail
+                cover:
+                  type: string
+                  format: binary
+                  description: Image de couverture
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Images ou vidéos associées
+                date:
+                  type: string
+                  format: date-time
+                  description: Date de l'événement ou du travail
+      responses:
+        "201":
+          description: Travail ajouté avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Work"
+        "400":
+          description: Données invalides
+    get:
+      tags:
+        - Travaux (Admin seulement)
+      summary: Récupérer la liste des travaux
+      description: Renvoie la liste de tous les travaux (titre et cover pour le slider).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste des travaux
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Work"
+
+  /works/{id}:
+    get:
+      tags:
+        - Travaux (Admin seulement)
+      summary: Récupérer le détail d'un travail
+      description: Renvoie toutes les informations d'un travail (titre, cover, fichiers…).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
             type: string
-  LoginResponse:
-    type: object
-    properties:
-      token:
-        type: string
-  UserProfile:
-    type: object
-    properties:
-      userName:
-        type: string
+          description: ID du travail à récupérer
+      responses:
+        "200":
+          description: Détail du travail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Work"
+        "404":
+          description: Travail non trouvé
+    delete:
+      tags:
+        - Travaux (Admin seulement)
+      summary: Supprimer un travail (administrateur uniquement)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID du travail à supprimer
+      responses:
+        "200":
+          description: Travail supprimé avec succès
+        "401":
+          description: Non autorisé
+        "403":
+          description: Accès refusé
+        "404":
+          description: Travail non trouvé
+    put:
+      tags:
+        - Travaux (Admin seulement)
+      summary: Modifier un travail
+      description: Modifie le titre, la cover ou les fichiers associés à un travail (admin uniquement).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID du travail à modifier
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Nouveau titre du travail
+                cover:
+                  type: string
+                  format: binary
+                  description: Nouvelle image de couverture (optionnel)
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Nouvelles images ou vidéos associées (optionnel)
+      responses:
+        "200":
+          description: Travail modifié avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Work"
+        "400":
+          description: Données invalides
+        "404":
+          description: Travail non trouvé
+        "500":
+          description: Erreur serveur
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identifiant unique de l'utilisateur (ObjectId)
+          example: "507f1f77bcf86cd799439011"
+        userName:
+          type: string
+          description: Identifiant unique de l'utilisateur
+          example: "Doe123"
+        email:
+          type: string
+          description: Adresse email de l'utilisateur
+          example: johndoe@example.com
+        firstName:
+          type: string
+          description: Prénom de l'utilisateur
+        lastName:
+          type: string
+          description: Nom de l'utilisateur
+        address:
+          type: string
+          description: Adresse de l'utilisateur
+        phoneNumber:
+          type: string
+          description: Numéro de téléphone de l'utilisateur
+        role:
+          type: string
+          description: Rôle de l'utilisateur
+        dateOfBirth:
+          type: string
+          format: date
+          description: Date de naissance de l'utilisateur
+          example: "1990-01-01"
+        isFirstLogin:
+          type: boolean
+          description: Indique si c'est la première connexion de l'utilisateur
+          example: false
+
+    UserCreate:
+      type: object
+      properties:
+        email:
+          type: string
+          description: Adresse email de l'utilisateur (optionnel)
+          example: johndoe@example.com
+        firstName:
+          type: string
+          description: Prénom de l'utilisateur
+        lastName:
+          type: string
+          description: Nom de l'utilisateur
+        address:
+          type: string
+          description: Adresse de l'utilisateur
+        phoneNumber:
+          type: string
+          description: Numéro de téléphone de l'utilisateur
+        role:
+          type: string
+          description: Rôle de l'utilisateur
+        password:
+          type: string
+          description: Mot de passe de l'utilisateur (optionnel, généré automatiquement si absent)
+          example: "securepassword123"
+        dateOfBirth:
+          type: string
+          format: date
+          description: Date de naissance de l'utilisateur
+          example: "1990-01-01"
+      required:
+        - firstName
+        - lastName
+        - address
+        - phoneNumber
+        - role
+        - dateOfBirth
+
+    UserUpdate:
+      type: object
+      properties:
+        email:
+          type: string
+          description: Adresse email de l'utilisateur
+          example: johndoe@example.com
+        password:
+          type: string
+          description: Nouveau mot de passe de l'utilisateur
+          example: "newpassword123"
+        address:
+          type: string
+          description: Adresse de l'utilisateur
+          example: "123 Main Street"
+        phoneNumber:
+          type: string
+          description: Numéro de téléphone de l'utilisateur
+          example: "1234567890"
+
+    Work:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identifiant unique du travail (ObjectId)
+          example: "665f1f77bcf86cd799439011"
+        title:
+          type: string
+          description: Titre du travail
+          example: "Réflexologie plantaire"
+        cover:
+          type: string
+          description: URL de l'image principale (cover)
+          example: "/uploads/cover1.jpg"
+        files:
+          type: array
+          description: Liste des fichiers (images/vidéos) associés
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [image, video]
+                description: Type du fichier
+                example: "image"
+              url:
+                type: string
+                description: URL du fichier
+                example: "/uploads/photo1.jpg"
+        date:
+          type: string
+          format: date-time
+          description: Date de l'événement ou du travail
+          example: "2024-07-01T18:00:00.000Z"

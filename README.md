@@ -1,72 +1,81 @@
-# Argent Bank API
+# ReflexBienEtre Backend API
 
-This codebase contains the code needed to run the backend for Argent Bank.
+Ce dépôt contient le code nécessaire pour exécuter le backend de ReflexBienEtre.
 
-## Getting Started
+## Démarrage
 
-### Prerequisites
+### Prérequis
 
-Argent Bank uses the following tech stack:
+ReflexBienEtre utilise la pile technologique suivante :
 
-- [Node.js v12](https://nodejs.org/en/)
+- [Node.js v16+](https://nodejs.org/en/)
 - [MongoDB Community Server](https://www.mongodb.com/try/download/community)
 
-Please make sure you have the right versions and download both packages. You can verify this by using the following commands in your terminal:
+Assurez-vous d'avoir les bonnes versions installées. Vous pouvez vérifier cela avec les commandes suivantes dans votre terminal :
 
 ```bash
-# Check Node.js version
+# Vérifier la version de Node.js
 node --version
 
-# Check Mongo version
+# Vérifier la version de MongoDB
 mongo --version
 ```
 
 ### Instructions
 
-1. Fork this repo
-1. Clone the repo onto your computer
-1. Open a terminal window in the cloned project
-1. Run the following commands:
+1. Clonez ce dépôt sur votre ordinateur.
+2. Ouvrez une fenêtre de terminal dans le projet cloné.
+3. Exécutez les commandes suivantes :
 
 ```bash
-# Install dependencies
+# Installer les dépendances
 npm install
 
-# Start local dev server
+# Démarrer le serveur de développement local
 npm run dev:server
 
-# Populate database with two users
+# Remplir la base de données avec des utilisateurs de test
 npm run populate-db
 ```
 
-Your server should now be running at http://locahost:3001 and you will now have two users in your MongoDB database!
+Votre serveur devrait maintenant être en cours d'exécution à l'adresse suivante : `http://localhost:4000`. Vous aurez également des utilisateurs de test dans votre base de données MongoDB.
 
-## Populated Database Data
+---
 
-Once you run the `populate-db` script, you should have two users in your database:
+## Données de la base de données pré-remplies
 
-### Tony Stark
+Une fois que vous avez exécuté le script `populate-db`, vous devriez avoir deux utilisateurs dans votre base de données :
 
-- First Name: `Tony`
-- Last Name: `Stark`
-- Email: `tony@stark.com`
-- Password: `password123`
+### Eric Sermande
 
-### Steve Rogers
+- **Prénom :** `Eric`
+- **Nom :** `Sermande`
+- **Email :** `eric@example.com`
+- **Mot de passe :** `password123`
 
-- First Name: `Steve`,
-- Last Name: `Rogers`,
-- Email: `steve@rogers.com`,
-- Password: `password456`
+### Jane Doe
 
-## API Documentation
+- **Prénom :** `Jane`
+- **Nom :** `Doe`
+- **Email :** `jane.doe@example.com`
+- **Mot de passe :** `password456`
 
-To learn more about how the API works, once you have started your local environment, you can visit: http://localhost:3001/api-docs
+---
 
-## Design Assets
+## Documentation de l'API
 
-Static HTML and CSS has been created for most of the site and is located in: `/designs`.
+Pour en savoir plus sur le fonctionnement de l'API, une fois que votre environnement local est démarré, vous pouvez visiter la documentation Swagger à l'adresse suivante :
 
-For some of the dynamic features, like toggling user editing, there is a mock-up for it in `/designs/wireframes/edit-user-name.png`.
+```
+http://localhost:4000/api-docs
+```
 
-And for the API model that you will be proposing for transactitons, the wireframe can be found in `/designs/wireframes/transactions.png`.
+---
+
+## Ressources de conception
+
+Les fichiers HTML et CSS statiques pour la plupart du site se trouvent dans le dossier `/designs`.
+
+Pour certaines fonctionnalités dynamiques, comme la modification des utilisateurs, vous pouvez consulter les maquettes dans `/designs/wireframes/edit-user-name.png`.
+
+Pour le modèle d'API que vous proposez pour les transactions, la maquette se trouve dans `/designs/wireframes/transactions.png`.

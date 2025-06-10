@@ -1,20 +1,26 @@
 {
-  "name": "argent-bank-api",
+  "name": "reflexbienetre-backend",
   "version": "0.0.1",
   "private": true,
-  "description": "Project #10 - Argent Bank",
-  "keywords": [],
-  "author": "",
-  "license": "",
+  "description": "Backend for Reflex Bien-Être project",
+  "keywords": [
+    "reflexologie",
+    "bien-etre",
+    "backend",
+    "api"
+  ],
+  "author": "Votre Nom",
+  "license": "MIT",
   "main": "index.js",
   "dependencies": {
     "axios": "^0.19.2",
-    "bcrypt": "^5.0.0",
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
-    "mongoose": "^5.9.21",
+    "mongoose": "^8.13.2",
+    "multer": "^2.0.1",
     "swagger-ui-express": "^4.1.4",
     "yamljs": "^0.3.0"
   },
