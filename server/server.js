@@ -75,6 +75,9 @@ if (process.env.NODE_ENV !== "production") {
 // Routes personnalisées
 app.use("/api/v1/user", require("./routes/userRoutes"));
 app.use("/api/v1/works", require("./routes/workRoutes"));
+app.use("/api/v1/news", require("./routes/newsRoutes"));
+app.use("/api/v1/contact", require("./routes/contactRoutes"));
+app.use("/api/v1/reviews", require("./routes/reviewRoutes"));
 
 // Route par défaut
 app.get("/", (req, res) => {

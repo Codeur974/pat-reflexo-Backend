@@ -391,6 +391,35 @@ paths:
         "500":
           description: Erreur serveur
 
+  /works/{workId}/file:
+    delete:
+      tags:
+        - Travaux (Admin seulement)
+      summary: Supprimer un fichier d'un travail
+      description: Supprime un fichier (image ou vidéo) d'un travail sans supprimer le travail entier.
+      parameters:
+        - in: path
+          name: workId
+          required: true
+          schema:
+            type: string
+          description: ID du travail
+        - in: query
+          name: url
+          required: true
+          schema:
+            type: string
+          description: URL du fichier à supprimer (champ 'url' du fichier)
+      responses:
+        "200":
+          description: Fichier supprimé avec succès
+        "400":
+          description: URL du fichier manquante
+        "404":
+          description: Travail ou fichier non trouvé
+        "500":
+          description: Erreur serveur
+
 components:
   securitySchemes:
     bearerAuth:

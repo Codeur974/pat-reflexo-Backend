@@ -20,6 +20,10 @@ router.post(
 // Route pour authentifier un utilisateur
 router.post("/login", userController.loginUser);
 
+// Routes pour la réinitialisation de mot de passe
+router.post("/forgot-password", userController.requestPasswordReset);
+router.post("/reset-password", userController.resetPassword);
+
 router.put(
   "/update-profile",
   tokenValidation.validateToken, // Middleware pour valider le token JWT

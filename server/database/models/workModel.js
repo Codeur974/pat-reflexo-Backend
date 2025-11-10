@@ -10,12 +10,20 @@ const FileSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  description: {
+    type: String,
+    default: "",
+  },
 });
 const WorkSchema = new mongoose.Schema(
   {
     title: {
       type: String,
       required: true,
+    },
+    description: {
+      type: String,
+      default: "",
     },
     cover: {
       type: String,

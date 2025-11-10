@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const User = require("../database/models/userModel");
+const createTransporter = require("../utils/emailTransporter");
 
 module.exports.firstLoginUpdate = async (req, res) => {
   try {
@@ -283,6 +285,197 @@ module.exports.updateUserProfile = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: "Internal server error",
+    });
+  }
+};
+
+// Demande de réinitialisation de mot de passe
+module.exports.requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        status: "error",
+        message: "L'adresse email est requise",
+      });
+    }
+
+    // Chercher l'utilisateur
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      // Pour la sécurité, on renvoie toujours un succès même si l'email n'existe pas
+      return res.status(200).json({
+        status: "success",
+        message: "Si un compte existe avec cet email, vous recevrez un lien de réinitialisation",
+      });
+    }
+
+    // Générer un token de réinitialisation
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    // Sauvegarder le token et la date d'expiration (1 heure)
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 heure
+    await user.save();
+
+    // Créer le lien de réinitialisation
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
+
+    // Créer le contenu HTML de l'email
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: 'Arial', sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              background: linear-gradient(135deg, #5fd7b0, #4fc3f7);
+              padding: 30px;
+              border-radius: 10px 10px 0 0;
+              text-align: center;
+            }
+            .header h1 {
+              color: white;
+              margin: 0;
+              font-size: 24px;
+            }
+            .content {
+              background: #f9f9f9;
+              padding: 30px;
+              border-radius: 0 0 10px 10px;
+            }
+            .message {
+              background: white;
+              padding: 20px;
+              border-radius: 8px;
+              margin: 20px 0;
+              border-left: 4px solid #5fd7b0;
+            }
+            .button {
+              display: inline-block;
+              padding: 15px 30px;
+              background: linear-gradient(135deg, #5fd7b0, #4fc3f7);
+              color: white !important;
+              text-decoration: none;
+              border-radius: 8px;
+              font-weight: bold;
+              margin: 20px 0;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 20px;
+              color: #666;
+              font-size: 12px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>🔑 Réinitialisation de mot de passe</h1>
+          </div>
+          <div class="content">
+            <div class="message">
+              <p>Bonjour,</p>
+              <p>Vous avez demandé à réinitialiser votre mot de passe pour votre compte Réflex'Bien-être.</p>
+              <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
+              <div style="text-align: center;">
+                <a href="${resetUrl}" class="button">Réinitialiser mon mot de passe</a>
+              </div>
+              <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                Ou copiez ce lien dans votre navigateur :<br>
+                <a href="${resetUrl}" style="color: #0288d1; word-break: break-all;">${resetUrl}</a>
+              </p>
+              <p style="margin-top: 20px; color: #ff6b6b; font-weight: bold;">
+                ⚠️ Ce lien expire dans 1 heure.
+              </p>
+              <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                Si vous n'avez pas demandé cette réinitialisation, ignorez simplement cet email.
+              </p>
+            </div>
+            <div class="footer">
+              <p>Réflex'Bien-être - Patricia Sermande</p>
+              <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Envoyer l'email
+    const transporter = createTransporter();
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Réinitialisation de votre mot de passe - Réflex'Bien-être",
+      html: htmlContent,
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: "Si un compte existe avec cet email, vous recevrez un lien de réinitialisation",
+    });
+  } catch (error) {
+    console.error("Error in requestPasswordReset:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Erreur lors de l'envoi de l'email",
+    });
+  }
+};
+
+// Réinitialiser le mot de passe avec le token
+module.exports.resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        status: "error",
+        message: "Le token et le nouveau mot de passe sont requis",
+      });
+    }
+
+    // Hasher le token reçu pour le comparer
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    // Trouver l'utilisateur avec ce token et vérifier qu'il n'est pas expiré
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        status: "error",
+        message: "Le lien de réinitialisation est invalide ou a expiré",
+      });
+    }
+
+    // Mettre à jour le mot de passe
+    user.password = password;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    res.status(200).json({
+      status: "success",
+      message: "Votre mot de passe a été réinitialisé avec succès",
+    });
+  } catch (error) {
+    console.error("Error in resetPassword:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Erreur lors de la réinitialisation du mot de passe",
     });
   }
 };
