@@ -116,6 +116,29 @@ app.use("/api/v1/reviews", require("./routes/reviewRoutes"));
 // 7) Route de test
 app.get("/", (req, res) => {
   res.send("Hello from Reflex Bien-Être API 🚀");
+}); // Route temporaire pour reset l'admin
+app.post("/api/v1/reset-admin-emergency", async (req, res) => {
+  try {
+    await User.deleteMany({ role: "admin" });
+    const hashedPassword = await bcrypt.hash(
+      process.env.DEFAULT_ADMIN_PASSWORD || "Celia97470@",
+      10
+    );
+    const admin = new User({
+      firstName: "Patricia",
+      lastName: "Sermande",
+      password: hashedPassword,
+      role: "admin",
+      address: "123 impasse sucrère appt2 97470 Saint-Benoît",
+      email: "patriciasermande@gmail.com",
+      phoneNumber: "0692057275",
+      dateOfBirth: new Date("1979-01-26"),
+    });
+    await admin.save();
+    res.json({ success: true, message: "Admin reset!" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 // 8) Middleware global d'erreurs
