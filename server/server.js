@@ -4,7 +4,7 @@ const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 const yaml = require("yamljs");
 const dbConnection = require("./database/connection");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const User = require("./database/models/userModel");
 const path = require("path");
 

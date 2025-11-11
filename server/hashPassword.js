@@ -1,4 +1,4 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 
 const plainPassword = "totor373"; // Mot de passe en clair
 bcrypt.hash(plainPassword, 10, (err, hashedPassword) => {
