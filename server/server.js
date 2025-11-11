@@ -46,7 +46,7 @@ const createDefaultAdmin = async () => {
     const admin = new User({
       firstName: "Patricia",
       lastName: "Sermande",
-      password: hashedPassword,
+      password: process.env.DEFAULT_ADMIN_PASSWORD || "Celia97470@",
       role: "admin",
       address: "123 impasse sucrère appt2 97470 Saint-Benoît",
       email: "reflexbe974@gmail.com",
@@ -120,14 +120,10 @@ app.get("/", (req, res) => {
 app.post("/api/v1/reset-admin-emergency", async (req, res) => {
   try {
     await User.deleteMany({ role: "admin" });
-    const hashedPassword = await bcrypt.hash(
-      process.env.DEFAULT_ADMIN_PASSWORD || "Celia97470@",
-      10
-    );
     const admin = new User({
       firstName: "Patricia",
       lastName: "Sermande",
-      password: hashedPassword,
+      password: process.env.DEFAULT_ADMIN_PASSWORD || "Celia97470@",
       role: "admin",
       address: "123 impasse sucrère appt2 97470 Saint-Benoît",
       email: "reflexbe974@gmail.com",
