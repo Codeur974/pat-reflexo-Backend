@@ -51,6 +51,7 @@ const createDefaultAdmin = async () => {
       address: "123 impasse sucrère appt2 97470 Saint-Benoît",
       email: "patriciasermande@gmail.com",
       phoneNumber: "0692057275",
+      dateOfBirth: new Date("1979-01-26"),
     });
 
     await admin.save();
