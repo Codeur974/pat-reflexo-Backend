@@ -68,7 +68,32 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // 4) Middlewares globaux
-app.use(cors()); // tu ajusteras plus tard avec les domaines Vercel
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://reflex-bien-esep1jj8s-erics-projects-b65f9e82.vercel.app",
+  process.env.FRONTEND_URL,
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.indexOf(origin) !== -1 ||
+        origin.includes("vercel.app")
+      ) {
+        callback(null, true);
+      } else {
+        console.log("CORS blocked:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
