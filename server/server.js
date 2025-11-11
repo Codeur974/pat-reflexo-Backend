@@ -130,7 +130,7 @@ app.post("/api/v1/reset-admin-emergency", async (req, res) => {
       password: hashedPassword,
       role: "admin",
       address: "123 impasse sucrère appt2 97470 Saint-Benoît",
-      email: "patriciasermande@gmail.com",
+      email: "reflexbe974@gmail.com",
       phoneNumber: "0692057275",
       dateOfBirth: new Date("1979-01-26"),
     });
