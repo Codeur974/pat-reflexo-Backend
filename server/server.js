@@ -72,6 +72,8 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "https://reflex-bien-esep1jj8s-erics-projects-b65f9e82.vercel.app",
+  "https://reflex-bien-etre.re",
+  "https://www.reflex-bien-etre.re",
   process.env.FRONTEND_URL,
 ];
 
