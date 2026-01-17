@@ -1,15 +1,25 @@
 const nodemailer = require("nodemailer");
 
-// Configuration du transporteur email - défaut: port 587 + STARTTLS
+// Configuration du transporteur email (adapter selon votre service)
 const createTransporter = () => {
   const isGmail = process.env.EMAIL_SERVICE === "gmail";
+  const port = Number(process.env.SMTP_PORT) || (isGmail ? 465 : 587);
+  const secure =
+    typeof process.env.SMTP_SECURE !== "undefined"
+      ? process.env.SMTP_SECURE === "true"
+      : port === 465;
 
-  // Défaut: 587 avec STARTTLS (plus fiable que 465)
-  const secure = process.env.SMTP_SECURE === "true";
-  const port = Number(process.env.SMTP_PORT) || 587;
+  const baseConfig = isGmail
+    ? {
+        service: "gmail",
+        host: "smtp.gmail.com",
+      }
+    : {
+        host: process.env.SMTP_HOST || "smtp.gmail.com",
+      };
 
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    ...baseConfig,
     port,
     secure,
     auth: {
