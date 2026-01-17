@@ -1,21 +1,27 @@
 const nodemailer = require("nodemailer");
 
-// Configuration du transporteur email (à adapter selon votre service)
+// Configuration du transporteur email (adapter selon votre service)
 const createTransporter = () => {
-  if (process.env.EMAIL_SERVICE === "gmail") {
-    return nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
-  }
+  const isGmail = process.env.EMAIL_SERVICE === "gmail";
+  const port = Number(process.env.SMTP_PORT) || (isGmail ? 465 : 587);
+  const secure =
+    typeof process.env.SMTP_SECURE !== "undefined"
+      ? process.env.SMTP_SECURE === "true"
+      : port === 465; // Gmail app passwords: 465 + secure true
+
+  const baseConfig = isGmail
+    ? {
+        service: "gmail",
+        host: "smtp.gmail.com",
+      }
+    : {
+        host: process.env.SMTP_HOST || "smtp.gmail.com",
+      };
 
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: process.env.SMTP_PORT || 587,
-    secure: false,
+    ...baseConfig,
+    port,
+    secure,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,
