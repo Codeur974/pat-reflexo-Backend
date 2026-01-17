@@ -9,6 +9,15 @@ const createTransporter = () => {
       ? process.env.SMTP_SECURE === "true"
       : port === 465;
 
+  // Debug: afficher la config (sans le mot de passe complet)
+  console.log("Email config:", {
+    service: isGmail ? "gmail" : "autre",
+    user: process.env.EMAIL_USER,
+    passLength: process.env.EMAIL_PASSWORD?.length,
+    port,
+    secure
+  });
+
   const baseConfig = isGmail
     ? {
         service: "gmail",
