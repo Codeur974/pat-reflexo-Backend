@@ -55,7 +55,7 @@ exports.deleteWork = async (req, res) => {
   }
   if (work.cover) {
     try {
-      fs.unlink(work.cover);
+      await fs.unlink(work.cover);
     } catch (e) {
       console.error("Erreur suppression cover:", work.cover, e.message);
     }
