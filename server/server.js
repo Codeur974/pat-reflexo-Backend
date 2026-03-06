@@ -104,7 +104,7 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // 5) Documentation API Swagger (uniquement hors prod)
 if (process.env.NODE_ENV !== "production") {
-  const swaggerDocs = yaml.load(path.join(__dirname, "swagger.yaml"));
+  const swaggerDocs = yaml.load(path.join(__dirname, "../swagger.yaml"));
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 }
 
