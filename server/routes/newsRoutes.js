@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const newsController = require("../controllers/newsController");
-const upload = require("../middleware/upload");
+const { upload } = require("../middleware/upload");
 
 router.get("/", newsController.getAllNews);
 router.get("/:id", newsController.getNewsById);

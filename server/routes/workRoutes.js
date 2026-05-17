@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const workController = require("../controllers/workController");
-const upload = require("../middleware/upload");
+const { upload } = require("../middleware/upload");
 
 router.get("/", workController.getAllWorks);
 router.get("/:id", workController.getWorkById);

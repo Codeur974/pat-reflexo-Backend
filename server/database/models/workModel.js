@@ -10,6 +10,10 @@ const FileSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  public_id: {
+    type: String,
+    default: null,
+  },
   description: {
     type: String,
     default: "",
@@ -28,6 +32,10 @@ const WorkSchema = new mongoose.Schema(
     cover: {
       type: String,
       required: true,
+    },
+    coverPublicId: {
+      type: String,
+      default: null,
     },
     files: [FileSchema],
     date: {

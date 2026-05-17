@@ -1,5 +1,5 @@
 const News = require("../database/models/newsModel");
-const fs = require("fs").promises;
+const { cloudinary } = require("../middleware/upload");
 
 exports.getAllNews = async (req, res) => {
   try {
@@ -12,7 +12,6 @@ exports.getAllNews = async (req, res) => {
 
 exports.getNewsById = async (req, res) => {
   try {
-    const newsId = req.params.id;
     const news = await News.findById(req.params.id);
     if (!news) {
       return res.status(404).json({ message: "annonce non trouvée" });
@@ -27,17 +26,18 @@ exports.createNews = async (req, res) => {
   try {
     const { title, description, date } = req.body;
 
-    const cover = req.files["cover"]
-      ? req.files["cover"][0].path.replace(/\\/g, "/")
-      : null;
+    const cover = req.files["cover"] ? req.files["cover"][0].path : null;
+    const coverPublicId = req.files["cover"] ? req.files["cover"][0].filename : null;
 
     const files = req.files["files"]
       ? req.files["files"].map((file) => ({
           type: file.mimetype.startsWith("image") ? "image" : "video",
-          url: file.path.replace(/\\/g, "/"),
+          url: file.path,
+          public_id: file.filename,
         }))
       : [];
-    const newNews = new News({ title, description, cover, files, date });
+
+    const newNews = new News({ title, description, cover, coverPublicId, files, date });
     await newNews.save();
     res.status(201).json(newNews);
   } catch (error) {
@@ -56,20 +56,26 @@ exports.deleteNews = async (req, res) => {
   if (!news) {
     return res.status(404).json({ message: "annonce non trouvée" });
   }
-  if (news.cover) {
+
+  if (news.coverPublicId) {
     try {
-      fs.unlink(news.cover);
+      await cloudinary.uploader.destroy(news.coverPublicId);
     } catch (e) {
-      console.error("Erreur suppression cover:", news.cover, e.message);
+      console.error("Erreur suppression cover Cloudinary:", e.message);
     }
   }
+
   for (const file of news.files) {
-    try {
-      await fs.unlink(file.url);
-    } catch (e) {
-      console.error("Erreur suppression fichier:", file.url, e.message);
+    if (file.public_id) {
+      try {
+        const resourceType = file.type === "video" ? "video" : "image";
+        await cloudinary.uploader.destroy(file.public_id, { resource_type: resourceType });
+      } catch (e) {
+        console.error("Erreur suppression fichier Cloudinary:", e.message);
+      }
     }
   }
+
   await news.deleteOne();
   res.status(200).json({ message: "annonce supprimée avec succès" });
 };
@@ -83,37 +89,27 @@ exports.updateNews = async (req, res) => {
     }
 
     const { title, description, date } = req.body;
-    console.log("req.body:", req.body);
-    console.log("req.files:", req.files);
-    if (title) {
-      news.title = title;
-    }
-    if (description !== undefined) {
-      news.description = description;
-    }
-    if (date) {
-      news.date = date;
-    }
+    if (title) news.title = title;
+    if (description !== undefined) news.description = description;
+    if (date) news.date = date;
 
     if (req.files && req.files["cover"] && req.files["cover"].length > 0) {
-      if (news.cover) {
+      if (news.coverPublicId) {
         try {
-          await fs.unlink(news.cover);
+          await cloudinary.uploader.destroy(news.coverPublicId);
         } catch (e) {
-          console.error(
-            "Erreur suppression ancienne cover:",
-            news.cover,
-            e.message
-          );
+          console.error("Erreur suppression ancienne cover Cloudinary:", e.message);
         }
       }
-      news.cover = req.files["cover"][0].path.replace(/\\/g, "/");
+      news.cover = req.files["cover"][0].path;
+      news.coverPublicId = req.files["cover"][0].filename;
     }
 
     if (req.files && req.files["files"] && req.files["files"].length > 0) {
       const newFiles = req.files["files"].map((file) => ({
         type: file.mimetype.startsWith("image") ? "image" : "video",
-        url: file.path.replace(/\\/g, "/"),
+        url: file.path,
+        public_id: file.filename,
       }));
       news.files = news.files.concat(newFiles);
     }
@@ -121,9 +117,7 @@ exports.updateNews = async (req, res) => {
     await news.save();
     res.status(200).json(news);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la modification de l'annonce" });
+    res.status(500).json({ message: "Erreur lors de la modification de l'annonce" });
   }
 };
 
@@ -132,9 +126,7 @@ exports.deleteFileFromNews = async (req, res) => {
     const { newsId } = req.params;
     const { url } = req.query;
     if (!url) {
-      return res
-        .status(400)
-        .json({ message: "URL du fichier à supprimer requise" });
+      return res.status(400).json({ message: "URL du fichier à supprimer requise" });
     }
     const news = await News.findById(newsId);
     if (!news) {
@@ -142,15 +134,19 @@ exports.deleteFileFromNews = async (req, res) => {
     }
     const fileIndex = news.files.findIndex((file) => file.url === url);
     if (fileIndex === -1) {
-      return res
-        .status(404)
-        .json({ message: "Fichier non trouvé dans cette annonce" });
+      return res.status(404).json({ message: "Fichier non trouvé dans cette annonce" });
     }
-    try {
-      await fs.unlink(url);
-    } catch (e) {
-      console.error("Erreur suppression fichier:", url, e.message);
+
+    const file = news.files[fileIndex];
+    if (file.public_id) {
+      try {
+        const resourceType = file.type === "video" ? "video" : "image";
+        await cloudinary.uploader.destroy(file.public_id, { resource_type: resourceType });
+      } catch (e) {
+        console.error("Erreur suppression Cloudinary:", e.message);
+      }
     }
+
     news.files.splice(fileIndex, 1);
     await news.save();
     res.status(200).json({ message: "Fichier supprimé avec succès" });

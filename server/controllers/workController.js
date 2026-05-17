@@ -1,5 +1,6 @@
 const Work = require("../database/models/workModel");
-const fs = require("fs").promises;
+const { cloudinary } = require("../middleware/upload");
+
 exports.getAllWorks = async (req, res) => {
   try {
     const works = await Work.find();
@@ -8,9 +9,9 @@ exports.getAllWorks = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 exports.getWorkById = async (req, res) => {
   try {
-    const workId = req.params.id;
     const work = await Work.findById(req.params.id);
     if (!work) {
       return res.status(404).json({ message: "travail non trouvé" });
@@ -25,17 +26,18 @@ exports.createWork = async (req, res) => {
   try {
     const { title, description, date } = req.body;
 
-    const cover = req.files["cover"]
-      ? req.files["cover"][0].path.replace(/\\/g, "/")
-      : null;
+    const cover = req.files["cover"] ? req.files["cover"][0].path : null;
+    const coverPublicId = req.files["cover"] ? req.files["cover"][0].filename : null;
 
     const files = req.files["files"]
       ? req.files["files"].map((file) => ({
           type: file.mimetype.startsWith("image") ? "image" : "video",
-          url: file.path.replace(/\\/g, "/"),
+          url: file.path,
+          public_id: file.filename,
         }))
       : [];
-    const newWork = new Work({ title, description, cover, files, date });
+
+    const newWork = new Work({ title, description, cover, coverPublicId, files, date });
     await newWork.save();
     res.status(201).json(newWork);
   } catch (error) {
@@ -47,29 +49,37 @@ exports.createWork = async (req, res) => {
     });
   }
 };
+
 exports.deleteWork = async (req, res) => {
   const workId = req.params.id;
   const work = await Work.findById(workId);
   if (!work) {
     return res.status(404).json({ message: "travail non trouvé" });
   }
-  if (work.cover) {
+
+  if (work.coverPublicId) {
     try {
-      await fs.unlink(work.cover);
+      await cloudinary.uploader.destroy(work.coverPublicId);
     } catch (e) {
-      console.error("Erreur suppression cover:", work.cover, e.message);
+      console.error("Erreur suppression cover Cloudinary:", e.message);
     }
   }
+
   for (const file of work.files) {
-    try {
-      await fs.unlink(file.url);
-    } catch (e) {
-      console.error("Erreur suppression fichier:", file.url, e.message);
+    if (file.public_id) {
+      try {
+        const resourceType = file.type === "video" ? "video" : "image";
+        await cloudinary.uploader.destroy(file.public_id, { resource_type: resourceType });
+      } catch (e) {
+        console.error("Erreur suppression fichier Cloudinary:", e.message);
+      }
     }
   }
+
   await work.deleteOne();
   res.status(200).json({ message: "travail supprimé avec succès" });
 };
+
 exports.updateWork = async (req, res) => {
   try {
     const workId = req.params.id;
@@ -78,87 +88,65 @@ exports.updateWork = async (req, res) => {
       return res.status(404).json({ message: "travail non trouvé" });
     }
 
-    // 1. Mise à jour du titre et description si fournis
     const { title, description, date } = req.body;
-    console.log("req.body:", req.body);
-    console.log("req.files:", req.files);
-    if (title) {
-      work.title = title;
-    }
-    if (description !== undefined) {
-      work.description = description;
-    }
-    if (date) {
-      work.date = date;
-    }
+    if (title) work.title = title;
+    if (description !== undefined) work.description = description;
+    if (date) work.date = date;
 
-    // 2. Mise à jour de la cover si une nouvelle image est envoyée
     if (req.files && req.files["cover"] && req.files["cover"].length > 0) {
-      // Supprimer l'ancienne cover du disque si elle existe
-      if (work.cover) {
+      if (work.coverPublicId) {
         try {
-          await fs.unlink(work.cover);
+          await cloudinary.uploader.destroy(work.coverPublicId);
         } catch (e) {
-          console.error(
-            "Erreur suppression ancienne cover:",
-            work.cover,
-            e.message
-          );
+          console.error("Erreur suppression ancienne cover Cloudinary:", e.message);
         }
       }
-      // Enregistrer le chemin de la nouvelle cover
-      work.cover = req.files["cover"][0].path.replace(/\\/g, "/");
+      work.cover = req.files["cover"][0].path;
+      work.coverPublicId = req.files["cover"][0].filename;
     }
 
-    // 3. Ajout des nouveaux fichiers (images/vidéos) si de nouveaux sont envoyés
     if (req.files && req.files["files"] && req.files["files"].length > 0) {
-      // Ajoute les nouveaux fichiers au tableau existant
       const newFiles = req.files["files"].map((file) => ({
         type: file.mimetype.startsWith("image") ? "image" : "video",
-        url: file.path.replace(/\\/g, "/"),
+        url: file.path,
+        public_id: file.filename,
       }));
       work.files = work.files.concat(newFiles);
     }
 
-    // 4. Sauvegarder les modifications
     await work.save();
     res.status(200).json(work);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la modification du travail" });
+    res.status(500).json({ message: "Erreur lors de la modification du travail" });
   }
 };
 
-// Suppression d'un fichier individuel d'un travail
 exports.deleteFileFromWork = async (req, res) => {
   try {
     const { workId } = req.params;
     const { url } = req.query;
     if (!url) {
-      return res
-        .status(400)
-        .json({ message: "URL du fichier à supprimer requise" });
+      return res.status(400).json({ message: "URL du fichier à supprimer requise" });
     }
     const work = await Work.findById(workId);
     if (!work) {
       return res.status(404).json({ message: "travail non trouvé" });
     }
-    // Cherche le fichier dans le tableau files
     const fileIndex = work.files.findIndex((file) => file.url === url);
     if (fileIndex === -1) {
-      return res
-        .status(404)
-        .json({ message: "Fichier non trouvé dans ce travail" });
+      return res.status(404).json({ message: "Fichier non trouvé dans ce travail" });
     }
-    // Supprime le fichier du disque
-    try {
-      await fs.unlink(url);
-    } catch (e) {
-      // Si le fichier n'existe plus sur le disque, on continue
-      console.error("Erreur suppression fichier:", url, e.message);
+
+    const file = work.files[fileIndex];
+    if (file.public_id) {
+      try {
+        const resourceType = file.type === "video" ? "video" : "image";
+        await cloudinary.uploader.destroy(file.public_id, { resource_type: resourceType });
+      } catch (e) {
+        console.error("Erreur suppression Cloudinary:", e.message);
+      }
     }
-    // Retire le fichier du tableau
+
     work.files.splice(fileIndex, 1);
     await work.save();
     res.status(200).json({ message: "Fichier supprimé avec succès" });
@@ -167,7 +155,6 @@ exports.deleteFileFromWork = async (req, res) => {
   }
 };
 
-// Mettre à jour la description d'un fichier
 exports.updateFileDescription = async (req, res) => {
   try {
     const { workId } = req.params;
@@ -182,13 +169,11 @@ exports.updateFileDescription = async (req, res) => {
       return res.status(404).json({ message: "Travail non trouvé" });
     }
 
-    // Cherche le fichier dans le tableau files
     const file = work.files.find((f) => f.url === url);
     if (!file) {
       return res.status(404).json({ message: "Fichier non trouvé dans ce travail" });
     }
 
-    // Met à jour la description
     file.description = description || "";
     await work.save();
 
