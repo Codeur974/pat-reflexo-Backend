@@ -114,6 +114,7 @@ app.use("/api/v1/works", require("./routes/workRoutes"));
 app.use("/api/v1/news", require("./routes/newsRoutes"));
 app.use("/api/v1/contact", require("./routes/contactRoutes"));
 app.use("/api/v1/reviews", require("./routes/reviewRoutes"));
+app.use("/api/v1/slots", require("./routes/slotRoutes"));
 
 // 7) Route de test
 app.get("/", (req, res) => {
