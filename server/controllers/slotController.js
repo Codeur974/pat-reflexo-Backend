@@ -88,6 +88,49 @@ exports.getPendingSlots = async (req, res) => {
   }
 };
 
+// GET /api/v1/slots/confirmed (admin) — RDV confirmés à venir
+exports.getConfirmedSlots = async (req, res) => {
+  try {
+    const today = toMidnight(new Date());
+    const slots = await Slot.find({ status: "confirmed", date: { $gte: today } }).sort({
+      date: 1,
+      time: 1,
+    });
+    res.json({ status: "success", slots: slots.map((s) => s.toObject()) });
+  } catch (error) {
+    console.error("Erreur getConfirmedSlots:", error);
+    res.status(500).json({ status: "error", message: "Erreur lors de la récupération des rendez-vous confirmés." });
+  }
+};
+
+const MIN_MONTHS_BETWEEN_APPOINTMENTS = 2;
+
+// Vérifie que le client ne reprenne pas RDV moins de 2 mois après son dernier RDV confirmé
+const checkRebookingDelay = async (phone, requestedDate) => {
+  const lastConfirmed = await Slot.findOne({
+    status: "confirmed",
+    "client.phone": phone,
+    date: { $lte: requestedDate },
+  }).sort({ date: -1 });
+
+  if (!lastConfirmed) return null;
+
+  const nextAllowedDate = new Date(lastConfirmed.date);
+  nextAllowedDate.setMonth(nextAllowedDate.getMonth() + MIN_MONTHS_BETWEEN_APPOINTMENTS);
+
+  if (requestedDate < nextAllowedDate) {
+    const formattedNextAllowed = nextAllowedDate.toLocaleDateString("fr-FR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    return `Vous avez déjà un rendez-vous confirmé récent. Merci de reprendre rendez-vous à partir du ${formattedNextAllowed}.`;
+  }
+
+  return null;
+};
+
 // POST /api/v1/slots/:id/book — public
 exports.bookSlot = async (req, res) => {
   try {
@@ -108,6 +151,11 @@ exports.bookSlot = async (req, res) => {
         status: "error",
         message: "Ce créneau vient d'être pris, merci d'en choisir un autre.",
       });
+    }
+
+    const rebookingError = await checkRebookingDelay(phone, slot.date);
+    if (rebookingError) {
+      return res.status(409).json({ status: "error", message: rebookingError });
     }
 
     slot.status = "pending";
