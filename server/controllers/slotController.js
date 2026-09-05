@@ -103,7 +103,7 @@ exports.getConfirmedSlots = async (req, res) => {
   }
 };
 
-const MIN_MONTHS_BETWEEN_APPOINTMENTS = 2;
+const MIN_MONTHS_BETWEEN_APPOINTMENTS = 3;
 
 // Vérifie que le client ne reprenne pas RDV moins de 2 mois après son dernier RDV confirmé
 const checkRebookingDelay = async (phone, requestedDate) => {
