@@ -11,8 +11,10 @@ router.post("/:id/book", slotController.bookSlot);
 router.post("/", validateToken, isAdmin, slotController.createDay);
 router.get("/pending", validateToken, isAdmin, slotController.getPendingSlots);
 router.get("/confirmed", validateToken, isAdmin, slotController.getConfirmedSlots);
+router.delete("/day", validateToken, isAdmin, slotController.deleteDay);
 router.delete("/:id", validateToken, isAdmin, slotController.deleteSlot);
 router.post("/duplicate-day", validateToken, isAdmin, slotController.duplicateDay);
+router.post("/undouble-day", validateToken, isAdmin, slotController.undoubleDay);
 router.patch("/:id/confirm", validateToken, isAdmin, slotController.confirmSlot);
 router.patch("/:id/refuse", validateToken, isAdmin, slotController.refuseSlot);
 

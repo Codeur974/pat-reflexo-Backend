@@ -64,6 +64,71 @@ exports.deleteSlot = async (req, res) => {
   }
 };
 
+// DELETE /api/v1/slots/day (admin) — body: { date }
+// Supprime en une fois tous les créneaux encore disponibles (non réservés) d'une demi-journée
+exports.deleteDay = async (req, res) => {
+  try {
+    const { date } = req.body;
+    if (!date || isNaN(Date.parse(date))) {
+      return res.status(400).json({
+        status: "error",
+        message: "Une date valide est requise.",
+      });
+    }
+
+    const day = toMidnight(date);
+    const result = await Slot.deleteMany({ date: day, status: "available" });
+    res.json({ status: "success", deletedCount: result.deletedCount });
+  } catch (error) {
+    console.error("Erreur deleteDay:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Erreur lors de la suppression de la demi-journée.",
+    });
+  }
+};
+
+// POST /api/v1/slots/undouble-day (admin) — body: { date }
+// Retire la 2e place ajoutée pour une collègue sur les créneaux d'une demi-journée,
+// uniquement là où cette 2e place est encore libre (pas déjà réservée par un client)
+exports.undoubleDay = async (req, res) => {
+  try {
+    const { date } = req.body;
+    if (!date || isNaN(Date.parse(date))) {
+      return res.status(400).json({
+        status: "error",
+        message: "Une date valide est requise.",
+      });
+    }
+
+    const day = toMidnight(date);
+    const daySlots = await Slot.find({ date: day });
+
+    let removedCount = 0;
+    const skippedTimes = [];
+    for (const time of SLOT_TIMES) {
+      const slotsForTime = daySlots.filter((s) => s.time === time);
+      if (slotsForTime.length < 2) continue;
+
+      const removable = slotsForTime.find((s) => s.status === "available");
+      if (removable) {
+        await removable.deleteOne();
+        removedCount += 1;
+      } else {
+        skippedTimes.push(time);
+      }
+    }
+
+    res.json({ status: "success", removedCount, skippedTimes });
+  } catch (error) {
+    console.error("Erreur undoubleDay:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Erreur lors du retrait de la 2e place.",
+    });
+  }
+};
+
 // POST /api/v1/slots/duplicate-day (admin) — body: { date }
 // Ouvre une 2e place sur tous les créneaux d'une demi-journée déjà ouverte
 // (ex: une collègue vient aider Patricia toute la demi-journée)
