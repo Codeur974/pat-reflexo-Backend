@@ -1,8 +1,9 @@
 const Slot = require("../database/models/slotModel");
 const createTransporter = require("../utils/emailTransporter");
 
-const SLOT_TIMES = ["09:00", "10:00", "11:00", "12:00"];
+const SLOT_TIMES = ["09:00", "10:00", "11:00"];
 const MAX_SLOTS_PER_TIME = 2; // nombre max de personnes reçues en même temps sur un créneau
+const COLLEAGUE_ONLY_TIME = "12:00"; // créneau ouvert uniquement quand une collègue vient aider
 
 const toMidnight = (dateInput) => {
   const d = new Date(dateInput);
@@ -119,6 +120,17 @@ exports.undoubleDay = async (req, res) => {
       }
     }
 
+    // Retire aussi le créneau 12h réservé à la collègue, s'il est encore libre
+    const extraSlot = daySlots.find((s) => s.time === COLLEAGUE_ONLY_TIME);
+    if (extraSlot) {
+      if (extraSlot.status === "available") {
+        await extraSlot.deleteOne();
+        removedCount += 1;
+      } else {
+        skippedTimes.push(COLLEAGUE_ONLY_TIME);
+      }
+    }
+
     res.json({ status: "success", removedCount, skippedTimes });
   } catch (error) {
     console.error("Erreur undoubleDay:", error);
@@ -158,6 +170,17 @@ exports.duplicateDay = async (req, res) => {
         const slot = await Slot.create({ date: day, time, status: "available" });
         created.push(slot.toObject());
       }
+    }
+
+    // Ouvre aussi le créneau 12h, réservé à la collègue tant qu'elle est là
+    const hasExtraSlot = existingSlots.some((s) => s.time === COLLEAGUE_ONLY_TIME);
+    if (!hasExtraSlot) {
+      const extraSlot = await Slot.create({
+        date: day,
+        time: COLLEAGUE_ONLY_TIME,
+        status: "available",
+      });
+      created.push(extraSlot.toObject());
     }
 
     res.status(201).json({ status: "success", slots: created });
