@@ -31,6 +31,7 @@
   "scripts": {
     "dev:server": "nodemon ./server/server.js",
     "populate-db": "node ./server/scripts/populateDatabase.js",
+    "drop-slot-unique-index": "node ./server/scripts/dropSlotUniqueIndex.js",
     "start": "node ./server/server.js"
   },
   "devDependencies": {
