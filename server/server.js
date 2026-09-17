@@ -6,7 +6,6 @@ const yaml = require("yamljs");
 const dbConnection = require("./database/connection");
 const bcrypt = require("bcryptjs");
 const User = require("./database/models/userModel");
-const Slot = require("./database/models/slotModel");
 const path = require("path");
 
 // 1) Charger les variables d'environnement AVANT tout
@@ -136,24 +135,6 @@ app.post("/api/v1/reset-admin-emergency", async (req, res) => {
     });
     await admin.save();
     res.json({ success: true, message: "Admin reset!" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// Route temporaire pour retirer l'ancien index unique date+time sur les créneaux
-// (à supprimer une fois exécutée une fois)
-app.post("/api/v1/fix-slot-index-emergency", async (req, res) => {
-  try {
-    const indexes = await Slot.collection.indexes();
-    const oldIndex = indexes.find(
-      (idx) => idx.unique && idx.key && idx.key.date === 1 && idx.key.time === 1
-    );
-    if (oldIndex) {
-      await Slot.collection.dropIndex(oldIndex.name);
-    }
-    await Slot.syncIndexes();
-    res.json({ success: true, dropped: oldIndex ? oldIndex.name : null });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
