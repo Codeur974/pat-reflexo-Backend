@@ -8,7 +8,7 @@ const slotSchema = new mongoose.Schema(
     },
     time: {
       type: String,
-      enum: ["09:00", "10:00", "11:00"],
+      enum: ["09:00", "10:00", "11:00", "12:00"],
       required: true,
     },
     status: {
@@ -35,6 +35,7 @@ const slotSchema = new mongoose.Schema(
   }
 );
 
-slotSchema.index({ date: 1, time: 1 }, { unique: true });
+// Pas unique : l'admin peut ouvrir une 2e place sur le même créneau (ex: une collègue vient l'aider)
+slotSchema.index({ date: 1, time: 1 });
 
 module.exports = mongoose.model("Slot", slotSchema);

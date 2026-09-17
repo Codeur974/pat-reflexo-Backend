@@ -1,7 +1,8 @@
 const Slot = require("../database/models/slotModel");
 const createTransporter = require("../utils/emailTransporter");
 
-const SLOT_TIMES = ["09:00", "10:00", "11:00"];
+const SLOT_TIMES = ["09:00", "10:00", "11:00", "12:00"];
+const MAX_SLOTS_PER_TIME = 2; // nombre max de personnes reçues en même temps sur un créneau
 
 const toMidnight = (dateInput) => {
   const d = new Date(dateInput);
@@ -60,6 +61,44 @@ exports.deleteSlot = async (req, res) => {
   } catch (error) {
     console.error("Erreur deleteSlot:", error);
     res.status(500).json({ status: "error", message: "Erreur lors de la suppression." });
+  }
+};
+
+// POST /api/v1/slots/duplicate-day (admin) — body: { date }
+// Ouvre une 2e place sur tous les créneaux d'une demi-journée déjà ouverte
+// (ex: une collègue vient aider Patricia toute la demi-journée)
+exports.duplicateDay = async (req, res) => {
+  try {
+    const { date } = req.body;
+    if (!date || isNaN(Date.parse(date))) {
+      return res.status(400).json({
+        status: "error",
+        message: "Une date valide est requise.",
+      });
+    }
+
+    const day = toMidnight(date);
+    const existingSlots = await Slot.find({ date: day });
+    if (existingSlots.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Aucune demi-journée ouverte à cette date.",
+      });
+    }
+
+    const created = [];
+    for (const time of SLOT_TIMES) {
+      const countForTime = existingSlots.filter((s) => s.time === time).length;
+      if (countForTime > 0 && countForTime < MAX_SLOTS_PER_TIME) {
+        const slot = await Slot.create({ date: day, time, status: "available" });
+        created.push(slot.toObject());
+      }
+    }
+
+    res.status(201).json({ status: "success", slots: created });
+  } catch (error) {
+    console.error("Erreur duplicateDay:", error);
+    res.status(500).json({ status: "error", message: "Erreur lors du doublement de la demi-journée." });
   }
 };
 
